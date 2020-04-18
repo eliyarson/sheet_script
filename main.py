@@ -4,6 +4,8 @@ from oauth2client.service_account import ServiceAccountCredentials
 import numpy as np
 
 #originKey = '1G5CrpUKkn5H2tA2IvIYjyIASr3UMoGqo4yXBbX7PtHI'
+#originSheetName = origin_sheet
+#destinySheetName
 
 
 def sheet_script(request):
@@ -15,47 +17,56 @@ def sheet_script(request):
     credentials = ServiceAccountCredentials.from_json_keyfile_name(
         "credentials.json", scope
     )
+    gc = gspread.authorize(credentials)
 
     ## POST Request
+
     content_type = request.headers['content-type']
     if content_type == 'application/json':
         request_json = request.get_json(silent=True)
-        if request_json and 'originKey' in request_json:
-            originKey = request_json['originKey']
-            print(originKey)
+        if request_json and 'origin_key' and 'origin_sheet_name' and 'destiny_sheet_name' in request_json:
+            origin_key = request_json['origin_key']
+            origin_sheet_name = request_json['origin_sheet_name']
+            destiny_sheet_name = request_json['destiny_sheet_name']
+            destiny_key = request_json['destiny_key']
         else:
             raise ValueError(
-                "JSON is invalid")
+                    "JSON is invalid")
+    else:
+        raise KeyError("Content type not application/json")
 
-    gc = gspread.authorize(credentials)
-    ## Open Spreadsheet
-    spreadsheet = gc.open_by_key(originKey)
-    ## Get sheet data
-    sheet = spreadsheet.get_worksheet(0)
-    sheet_data = sheet.get_all_values()
-
-
+    ## Open origin_key Spreadsheet
+    origin_spreadsheet = gc.open_by_key(origin_key)
+    ## Get origin_sheet_name data
+    origin_sheet = origin_spreadsheet.worksheet(origin_sheet_name)
+    origin_sheet_data = origin_sheet.get_all_values()
 
     ## Transform into DataFrame for manipulations
+    ##uncomment if you want to do data transformation
 
-    header = sheet_data[0]
-    df = pd.DataFrame(data=sheet_data, columns=header)
-    df.drop(0, inplace=True)
-    df['d'] = [1, 2, 3]
-    rand = list(np.random.randint(0, 10, size=(1000, 4)))
-    df2 = pd.DataFrame(rand, columns=list('abcd'))
-    df = df.append(df2, ignore_index=True)
-    df_list = [df.columns.values.tolist()] + df.values.tolist()
+    #header = origin_sheet_data[0]
+    #df = pd.DataFrame(data=origin_sheet_data, columns=header)
+    #df.drop(0, inplace=True)
+    #df['d'] = [1, 2, 3]
+    #rand = list(np.random.randint(0, 10, size=(1000, 4)))
+    #df2 = pd.DataFrame(rand, columns=list('abcd'))
+    #df = df.append(df2, ignore_index=True)
+    #df_list = [df.columns.values.tolist()] + df.values.tolist()
 
     ## Copy data
-    sheet_name = 'new_sheet'
-    copy_sheet = spreadsheet.worksheet(sheet_name)
-    copy_sheet.clear()
+    destiny_spreadsheet = gc.open_by_key(destiny_key)
+    destiny_sheet = destiny_spreadsheet.worksheet(destiny_sheet_name)
+    destiny_sheet.clear()
+
+    #if you uncomment the section above, comment the line below.
+    df_list = origin_sheet_data
+
     rows = len(df_list)
     cols = len(df_list[0])
-    copy_sheet.resize(rows, cols)
+    destiny_sheet.resize(rows, cols)
     params = {'valueInputOption': 'RAW'}
     body = {'values': df_list}
-    spreadsheet.values_append(f'{sheet_name}!A1', params, body)
+    destiny_spreadsheet.values_append(f'{destiny_sheet_name}!A1', params, body)
+    request_json['status'] = 'OK'
 
-    return 'OK'
+    return request_json
