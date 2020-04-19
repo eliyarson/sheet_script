@@ -4,8 +4,8 @@ from oauth2client.service_account import ServiceAccountCredentials
 import numpy as np
 
 #originKey = '1G5CrpUKkn5H2tA2IvIYjyIASr3UMoGqo4yXBbX7PtHI'
-#originSheetName = origin_sheet
-#destinySheetName
+#originSheetName = 'origin_sheet'
+#destinySheetName = 'benchmark_sheet'
 
 
 def sheet_script(request):
@@ -33,7 +33,7 @@ def sheet_script(request):
             raise ValueError(
                     "JSON is invalid")
     else:
-        raise KeyError("Content type not application/json")
+        raise KeyError("Content type <> application/json")
 
     ## Open origin_key Spreadsheet
     origin_spreadsheet = gc.open_by_key(origin_key)
